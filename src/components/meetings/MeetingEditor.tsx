@@ -258,7 +258,22 @@ const MeetingEditor: React.FC<MeetingEditorProps> = ({ meetingId, onBack, onGene
                                                     <p className="font-bold text-slate-900 dark:text-white text-sm">
                                                         {attendee.member ? `${attendee.member.first_name} ${attendee.member.last_name}` : attendee.name}
                                                     </p>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{attendeeRoleLabels[attendee.role]}</p>
+                                                    <select
+                                                        value={attendee.role}
+                                                        onChange={(e) => {
+                                                            meetingService.updateAttendee(attendee.id, { role: e.target.value });
+                                                            loadMeetingData();
+                                                        }}
+                                                        className="text-[10px] text-slate-500 bg-transparent font-bold uppercase tracking-widest outline-none border-none p-0 cursor-pointer hover:text-primary transition-colors"
+                                                    >
+                                                        {Object.entries(attendeeRoleLabels).map(([val, label]) => (
+                                                            <option key={val} value={val}>
+                                                                {attendee.member?.board_position && val === attendee.role
+                                                                    ? attendee.member.board_position
+                                                                    : label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             </div>
                                             <button

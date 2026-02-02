@@ -69,7 +69,7 @@ class AIMinutesService {
             const name = a.member
                 ? `${a.member.first_name} ${a.member.last_name}`
                 : a.name || 'Participante';
-            const role = attendeeRoleLabels[a.role] || a.role;
+            const role = a.member?.board_position || attendeeRoleLabels[a.role] || a.role;
             const presence = a.present ? '(Presente)' : '(Ausente)';
             return `- ${name} - ${role} ${presence}`;
         }).join('\n') || 'Nenhum participante registrado';
@@ -108,6 +108,8 @@ INSTRUÇÕES:
 5. Formate o texto em HTML para exibição formatada
 6. Não invente informações além das fornecidas
 7. Se houver votações, declare claramente os resultados
+8. Mantenha o conteúdo CONCISO e OBJETIVO para que caiba preferencialmente em uma única página A4
+9. Use listas simples para participantes e tópicos
 
 DADOS DA REUNIÃO:
 
@@ -158,8 +160,8 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
 
         const html = `
 <div style="font-family: 'Times New Roman', serif; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-    <h1 style="text-align: center; font-size: 18px; margin-bottom: 5px;">ASSOCREV</h1>
-    <h2 style="text-align: center; font-size: 16px; font-weight: normal; margin-bottom: 30px;">
+    <h1 style="text-align: center; font-size: 16px; margin: 0 0 5px 0;">ASSOCREV</h1>
+    <h2 style="text-align: center; font-size: 14px; font-weight: normal; margin: 0 0 20px 0;">
         ATA DA ${meetingTypeLabels[meeting.meeting_type]?.toUpperCase() || 'REUNIÃO'}
     </h2>
     
@@ -171,12 +173,13 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
         com a seguinte pauta: <strong>${meeting.title}</strong>.
     </p>
 
-    <h3 style="font-size: 14px; margin-top: 20px;">1. LISTA DE PRESENÇA</h3>
-    <p><strong>Presentes:</strong></p>
+    <h3 style="font-size: 12px; margin: 15px 0 5px 0;">1. LISTA DE PRESENÇA</h3>
+    <p style="margin: 0;"><strong>Presentes:</strong></p>
     <ul>
         ${presentAttendees.map(a => {
             const name = a.member ? `${a.member.first_name} ${a.member.last_name}` : a.name || 'Participante';
-            return `<li>${name} - ${attendeeRoleLabels[a.role] || a.role}</li>`;
+            const role = a.member?.board_position || attendeeRoleLabels[a.role] || a.role;
+            return `<li>${name} - ${role}</li>`;
         }).join('\n        ') || '<li>Nenhum participante presente registrado</li>'}
     </ul>
     ${absentAttendees.length > 0 ? `
@@ -184,12 +187,13 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
     <ul>
         ${absentAttendees.map(a => {
             const name = a.member ? `${a.member.first_name} ${a.member.last_name}` : a.name || 'Participante';
-            return `<li>${name} - ${attendeeRoleLabels[a.role] || a.role}</li>`;
+            const role = a.member?.board_position || attendeeRoleLabels[a.role] || a.role;
+            return `<li>${name} - ${role}</li>`;
         }).join('\n        ')}
     </ul>` : ''}
 
-    <h3 style="font-size: 14px; margin-top: 20px;">2. ORDEM DO DIA</h3>
-    <ol>
+    <h3 style="font-size: 12px; margin: 15px 0 5px 0;">2. ORDEM DO DIA</h3>
+    <ol style="margin: 0; padding-left: 20px;">
         ${meeting.topics?.map(t => `
         <li>
             <strong>${t.title}</strong>
@@ -199,8 +203,8 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
     </ol>
 
     ${meeting.votes && meeting.votes.length > 0 ? `
-    <h3 style="font-size: 14px; margin-top: 20px;">3. VOTAÇÕES</h3>
-    <ol>
+    <h3 style="font-size: 12px; margin: 15px 0 5px 0;">3. VOTAÇÕES</h3>
+    <ol style="margin: 0; padding-left: 20px;">
         ${meeting.votes.map(v => `
         <li>
             <strong>${v.subject}</strong><br/>
@@ -210,8 +214,8 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
     </ol>` : ''}
 
     ${meeting.decisions && meeting.decisions.length > 0 ? `
-    <h3 style="font-size: 14px; margin-top: 20px;">4. DELIBERAÇÕES E ENCAMINHAMENTOS</h3>
-    <ol>
+    <h3 style="font-size: 12px; margin: 15px 0 5px 0;">4. DELIBERAÇÕES E ENCAMINHAMENTOS</h3>
+    <ol style="margin: 0; padding-left: 20px;">
         ${meeting.decisions.map(d => {
             const responsible = d.responsible ? `${d.responsible.first_name} ${d.responsible.last_name}` : '';
             const deadline = d.deadline ? new Date(d.deadline + 'T12:00:00').toLocaleDateString('pt-BR') : '';
@@ -224,8 +228,8 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
         }).join('\n        ')}
     </ol>` : ''}
 
-    <h3 style="font-size: 14px; margin-top: 20px;">5. ENCERRAMENTO</h3>
-    <p style="text-align: justify;">
+    <h3 style="font-size: 12px; margin: 15px 0 5px 0;">5. ENCERRAMENTO</h3>
+    <p style="text-align: justify; margin: 0;">
         Nada mais havendo a tratar, foi encerrada a reunião às <strong>${meeting.end_time || '___:___'}</strong> horas, 
         da qual eu, secretário(a), lavrei a presente ata que, após lida e aprovada, 
         será assinada por mim e pelo(a) presidente.
@@ -233,14 +237,14 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
 
     <div style="margin-top: 60px; display: flex; justify-content: space-between;">
         <div style="text-align: center; width: 45%;">
-            <div style="border-top: 1px solid #000; padding-top: 5px;">
+            <p style="border-top: 1px solid #000; padding-top: 5px; margin: 0;">
                 Presidente
-            </div>
+            </p>
         </div>
         <div style="text-align: center; width: 45%;">
-            <div style="border-top: 1px solid #000; padding-top: 5px;">
+            <p style="border-top: 1px solid #000; padding-top: 5px; margin: 0;">
                 Secretário(a)
-            </div>
+            </p>
         </div>
     </div>
 </div>`;

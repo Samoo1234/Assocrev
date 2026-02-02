@@ -30,17 +30,34 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ onClose, onSuccess }) => {
         } else if (meeting) {
             // Se marcado para incluir diretoria, fazemos isso agora
             if (includeBoard) {
-                const { data: boardMembers } = await memberService.listBoardMembers();
-                if (boardMembers && boardMembers.length > 0) {
-                    const attendees = boardMembers.map(m => ({
-                        meeting_id: meeting.id,
-                        member_id: m.id,
-                        present: true,
-                        role: m.board_position?.toLowerCase().includes('presidente') ? 'president' :
-                            m.board_position?.toLowerCase().includes('secret') ? 'secretary' :
-                                m.board_position?.toLowerCase().includes('tesour') ? 'treasurer' : 'participant'
-                    }));
-                    await meetingService.addMultipleAttendees(attendees);
+                try {
+                    const { data: boardMembers, error: boardError } = await memberService.listBoardMembers();
+                    if (boardError) throw new Error(boardError);
+
+                    if (boardMembers && boardMembers.length > 0) {
+                        const attendees = boardMembers
+                            .filter(m => m.id)
+                            .map(m => {
+                                const pos = (m.board_position || '').toLowerCase();
+                                let dbRole: any = 'participant';
+                                if (pos.includes('presidente')) dbRole = 'president';
+                                else if (pos.includes('secret')) dbRole = 'secretary';
+                                else if (pos.includes('tesour')) dbRole = 'treasurer';
+
+                                return {
+                                    meeting_id: meeting.id,
+                                    member_id: m.id,
+                                    present: true,
+                                    role: dbRole
+                                };
+                            });
+
+                        const { error: insertError } = await meetingService.addMultipleAttendees(attendees);
+                        if (insertError) throw new Error(insertError);
+                    }
+                } catch (err: any) {
+                    console.error('Erro ao incluir diretoria:', err);
+                    alert('Reunião criada, mas houve um erro ao incluir a diretoria: ' + err.message);
                 }
             }
             onSuccess(meeting.id);

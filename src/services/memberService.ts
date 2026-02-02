@@ -76,7 +76,7 @@ class MemberService {
                 .from('members')
                 .select('*')
                 .eq('is_board_member', true)
-                .eq('status', 'active')
+                .in('status', ['active', 'Ativo'])
                 .order('first_name', { ascending: true });
 
             if (error) {

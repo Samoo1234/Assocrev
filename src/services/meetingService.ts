@@ -67,7 +67,7 @@ class MeetingService {
                 .from('meeting_attendees')
                 .select(`
                     *,
-                    member:members(first_name, last_name, email)
+                    member:members(first_name, last_name, email, board_position)
                 `)
                 .eq('meeting_id', id);
 

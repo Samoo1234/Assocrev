@@ -40,6 +40,7 @@ export interface MeetingAttendee {
         first_name: string;
         last_name: string;
         email?: string;
+        board_position?: string;
     };
 }
 

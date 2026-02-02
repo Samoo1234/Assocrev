@@ -571,14 +571,21 @@ const Members: React.FC = () => {
                                             {memberForm.is_board_member && (
                                                 <div className="animate-in slide-in-from-top-2 duration-200">
                                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cargo na Diretoria</label>
-                                                    <input
-                                                        type="text"
+                                                    <select
                                                         value={memberForm.board_position}
                                                         onChange={(e) => setMemberForm({ ...memberForm, board_position: e.target.value })}
                                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all"
-                                                        placeholder="Ex: Presidente, Diretor Financeiro, etc."
                                                         required={memberForm.is_board_member}
-                                                    />
+                                                    >
+                                                        <option value="">Selecione um cargo...</option>
+                                                        <option value="Presidente">Presidente</option>
+                                                        <option value="Vice-Presidente">Vice-Presidente</option>
+                                                        <option value="Secretário(a)">Secretário(a)</option>
+                                                        <option value="2º Secretario(a)">2º Secretario(a)</option>
+                                                        <option value="Tesoureiro">Tesoureiro</option>
+                                                        <option value="2º Tesoureiro">2º Tesoureiro</option>
+                                                        <option value="Conselho Fiscal">Conselho Fiscal</option>
+                                                    </select>
                                                 </div>
                                             )}
                                         </div>

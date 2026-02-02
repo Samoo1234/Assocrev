@@ -17,40 +17,98 @@ class ExportService {
         try {
             const { title, content, meetingId } = options;
 
-            // Create PDF
             const pdf = new jsPDF('p', 'mm', 'a4');
-
-            // Strip HTML tags for basic PDF (jsPDF doesn't support HTML natively without plugins)
-            const plainText = this.htmlToPlainText(content);
-
-            // Add content
             const pageWidth = pdf.internal.pageSize.getWidth();
-            const margin = 20;
-            const maxWidth = pageWidth - (margin * 2);
-
-            pdf.setFont('helvetica', 'normal');
-            pdf.setFontSize(11);
-
-            // Split text into lines that fit the page width
-            const lines = pdf.splitTextToSize(plainText, maxWidth);
-
-            let y = margin;
-            const lineHeight = 6;
             const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 25; // Slightly larger margin for professional look
+            const maxWidth = pageWidth - (margin * 2);
+            let y = margin;
 
-            for (const line of lines) {
-                if (y + lineHeight > pageHeight - margin) {
-                    pdf.addPage();
-                    y = margin;
+            const temp = document.createElement('div');
+            temp.innerHTML = content;
+
+            const addText = (text: string, options: {
+                fontSize?: number,
+                fontStyle?: 'normal' | 'bold' | 'italic',
+                align?: 'left' | 'center',
+                marginTop?: number,
+                marginBottom?: number
+            } = {}) => {
+                const {
+                    fontSize = 10,
+                    fontStyle = 'normal',
+                    align = 'left',
+                    marginTop = 0,
+                    marginBottom = 2
+                } = options;
+
+                pdf.setFont('helvetica', fontStyle);
+                pdf.setFontSize(fontSize);
+
+                const lines = pdf.splitTextToSize(text, maxWidth);
+                const lineHeight = (fontSize * 0.3527) * 1.5; // Font size in mm * line spacing factor
+
+                y += marginTop;
+
+                for (const line of lines) {
+                    if (y + lineHeight > pageHeight - margin) {
+                        pdf.addPage();
+                        y = margin;
+                        // Conserve font settings on new page
+                        pdf.setFont('helvetica', fontStyle);
+                        pdf.setFontSize(fontSize);
+                    }
+
+                    const x = align === 'center'
+                        ? (pageWidth - pdf.getTextWidth(line)) / 2
+                        : margin;
+
+                    pdf.text(line, x, y + (fontSize * 0.3527)); // adjust for baseline
+                    y += lineHeight;
                 }
-                pdf.text(line, margin, y);
-                y += lineHeight;
-            }
+
+                y += marginBottom;
+            };
+
+            const processNode = (node: Node) => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent?.trim();
+                    if (text) {
+                        addText(text);
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const el = node as HTMLElement;
+                    const tagName = el.tagName.toLowerCase();
+
+                    if (tagName === 'h1') {
+                        addText(el.innerText, { fontSize: 16, fontStyle: 'bold', align: 'center', marginBottom: 6 });
+                    } else if (tagName === 'h2') {
+                        addText(el.innerText, { fontSize: 13, fontStyle: 'bold', align: 'center', marginBottom: 4 });
+                    } else if (tagName === 'h3') {
+                        addText(el.innerText, { fontSize: 11, fontStyle: 'bold', marginTop: 4, marginBottom: 2 });
+                    } else if (tagName === 'p') {
+                        addText(el.innerText, { fontSize: 10, marginBottom: 3 });
+                    } else if (tagName === 'li') {
+                        addText(`• ${el.innerText}`, { fontSize: 10, marginBottom: 1 });
+                    } else if (tagName === 'ul' || tagName === 'ol') {
+                        Array.from(el.childNodes).forEach(processNode);
+                        y += 2; // Gap after list
+                    } else if (tagName === 'div') {
+                        // Handle signature blocks or other divs as potential containers
+                        Array.from(el.childNodes).forEach(processNode);
+                    } else if (tagName === 'br') {
+                        y += 5;
+                    }
+                }
+            };
+
+            // Start processing top-level nodes
+            Array.from(temp.childNodes).forEach(processNode);
 
             // Generate blob
             const pdfBlob = pdf.output('blob');
 
-            // Upload to Supabase Storage
+            // Upload and Download logic follows...
             const fileName = `ata_${meetingId}_${Date.now()}.pdf`;
             const filePath = `minutes/${fileName}`;
 
@@ -61,17 +119,14 @@ class ExportService {
                 });
 
             if (uploadError) {
-                // If upload fails, just download locally
                 saveAs(pdfBlob, `${title}.pdf`);
                 return { url: null, error: null };
             }
 
-            // Get public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('documents')
                 .getPublicUrl(filePath);
 
-            // Also download locally
             saveAs(pdfBlob, `${title}.pdf`);
 
             return { url: publicUrl, error: null };
@@ -91,10 +146,19 @@ class ExportService {
             // Parse HTML content to paragraphs
             const paragraphs = this.htmlToParagraphs(content);
 
-            // Create document
+            // Create document with professional settings
             const doc = new Document({
                 sections: [{
-                    properties: {},
+                    properties: {
+                        page: {
+                            margin: {
+                                top: 1440, // 1 inch = 1440 twips
+                                right: 1440,
+                                bottom: 1440,
+                                left: 1440,
+                            },
+                        },
+                    },
                     children: paragraphs,
                 }],
             });
@@ -163,73 +227,90 @@ class ExportService {
         const temp = document.createElement('div');
         temp.innerHTML = html;
 
-        // Process each element
-        const processNode = (node: Node) => {
-            if (node.nodeType === Node.TEXT_NODE) {
+        const processElement = (element: HTMLElement): Paragraph | null => {
+            const tagName = element.tagName.toLowerCase();
+            const text = element.innerText || element.textContent || '';
+            if (!text.trim() && tagName !== 'br') return null;
+
+            if (tagName === 'h1') {
+                return new Paragraph({
+                    text: text,
+                    heading: HeadingLevel.HEADING_1,
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 400, after: 200 },
+                });
+            }
+
+            if (tagName === 'h2') {
+                return new Paragraph({
+                    text: text,
+                    heading: HeadingLevel.HEADING_2,
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 300, after: 200 },
+                });
+            }
+
+            if (tagName === 'h3') {
+                return new Paragraph({
+                    text: text,
+                    heading: HeadingLevel.HEADING_3,
+                    spacing: { before: 200, after: 100 },
+                });
+            }
+
+            if (tagName === 'p' || tagName === 'div') {
+                // Check if it's a signature line (very simple detection)
+                const isSignature = element.style.borderTop !== '' || text.includes('Presidente') || text.includes('Secretário');
+
+                return new Paragraph({
+                    alignment: isSignature ? AlignmentType.CENTER : AlignmentType.BOTH,
+                    spacing: { line: 360, after: 120 }, // 1.5 line spacing
+                    children: [
+                        new TextRun({
+                            text: text,
+                            size: 22, // 11pt
+                            font: 'Times New Roman',
+                        })
+                    ]
+                });
+            }
+
+            if (tagName === 'li') {
+                return new Paragraph({
+                    bullet: { level: 0 },
+                    children: [new TextRun({ text: text, size: 22, font: 'Times New Roman' })],
+                });
+            }
+
+            return null;
+        };
+
+        const walk = (node: Node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const el = node as HTMLElement;
+                const tagName = el.tagName.toLowerCase();
+
+                if (['h1', 'h2', 'h3', 'p', 'li'].includes(tagName)) {
+                    const p = processElement(el);
+                    if (p) paragraphs.push(p);
+                } else if (tagName === 'ul' || tagName === 'ol' || tagName === 'div') {
+                    Array.from(el.childNodes).forEach(walk);
+                }
+            } else if (node.nodeType === Node.TEXT_NODE) {
                 const text = node.textContent?.trim();
                 if (text) {
                     paragraphs.push(new Paragraph({
-                        children: [new TextRun(text)],
+                        children: [new TextRun({ text, size: 22, font: 'Times New Roman' })],
+                        alignment: AlignmentType.BOTH,
+                        spacing: { after: 120 }
                     }));
-                }
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-                const element = node as HTMLElement;
-                const tagName = element.tagName.toLowerCase();
-
-                if (tagName === 'h1') {
-                    paragraphs.push(new Paragraph({
-                        text: element.textContent || '',
-                        heading: HeadingLevel.HEADING_1,
-                        alignment: AlignmentType.CENTER,
-                    }));
-                } else if (tagName === 'h2') {
-                    paragraphs.push(new Paragraph({
-                        text: element.textContent || '',
-                        heading: HeadingLevel.HEADING_2,
-                        alignment: AlignmentType.CENTER,
-                    }));
-                } else if (tagName === 'h3') {
-                    paragraphs.push(new Paragraph({
-                        text: element.textContent || '',
-                        heading: HeadingLevel.HEADING_3,
-                    }));
-                } else if (tagName === 'p') {
-                    const runs: TextRun[] = [];
-                    element.childNodes.forEach(child => {
-                        if (child.nodeType === Node.TEXT_NODE) {
-                            runs.push(new TextRun(child.textContent || ''));
-                        } else if (child.nodeType === Node.ELEMENT_NODE) {
-                            const childEl = child as HTMLElement;
-                            const isBold = childEl.tagName === 'STRONG' || childEl.tagName === 'B';
-                            const isItalic = childEl.tagName === 'EM' || childEl.tagName === 'I';
-                            runs.push(new TextRun({
-                                text: childEl.textContent || '',
-                                bold: isBold,
-                                italics: isItalic,
-                            }));
-                        }
-                    });
-                    paragraphs.push(new Paragraph({ children: runs }));
-                } else if (tagName === 'li') {
-                    paragraphs.push(new Paragraph({
-                        text: `• ${element.textContent || ''}`,
-                    }));
-                } else if (tagName === 'ul' || tagName === 'ol') {
-                    element.querySelectorAll('li').forEach(li => {
-                        paragraphs.push(new Paragraph({
-                            text: `• ${li.textContent || ''}`,
-                        }));
-                    });
-                } else {
-                    // Process children for other elements
-                    element.childNodes.forEach(processNode);
                 }
             }
         };
 
-        temp.childNodes.forEach(processNode);
+        Array.from(temp.childNodes).forEach(walk);
 
-        return paragraphs.length > 0 ? paragraphs : [new Paragraph({ text: html })];
+        return paragraphs.length > 0 ? paragraphs : [new Paragraph({ text: 'Ata sem conteúdo' })];
     }
 
     /**
