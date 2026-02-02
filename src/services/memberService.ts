@@ -249,7 +249,10 @@ class MemberService {
             }
 
             const counts = data.reduce((acc, m) => {
-                acc[m.status as string] = (acc[m.status as string] || 0) + 1;
+                const status = m.status === 'Ativo' ? 'active' :
+                    m.status === 'Pendente' ? 'pending' :
+                        m.status === 'Inativo' ? 'inactive' : m.status;
+                acc[status as string] = (acc[status as string] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
 
@@ -261,6 +264,71 @@ class MemberService {
             };
         } catch (err) {
             return { active: 0, pending: 0, inactive: 0, total: 0 };
+        }
+    }
+
+    /**
+     * Obter dados de crescimento mensal (membros por mês)
+     */
+    async getGrowthData(): Promise<{ month: string; members: number }[]> {
+        try {
+            const { data, error } = await supabase
+                .from('members')
+                .select('membership_date')
+                .order('membership_date', { ascending: true });
+
+            if (error || !data) return [];
+
+            // Agrupar por mês
+            const monthsMap: Record<string, number> = {};
+            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+            // Garantir que temos os últimos 6 meses pelo menos, mesmo que vazios
+            const now = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthName = monthNames[d.getMonth()];
+                monthsMap[monthName] = 0;
+            }
+
+            let cumulativeCount = 0;
+
+            // Aqui uma lógica simples: vamos contar quantos membros entraram em cada mês
+            // e somar ao total acumulado para o gráfico de crescimento
+
+            // 1. Contar totais históricos antes do período exibido (para o acumulado)
+            const firstDateDisplayed = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+            // Buscar contagem total inicial
+            const { count } = await supabase
+                .from('members')
+                .select('*', { count: 'exact', head: true })
+                .lt('membership_date', firstDateDisplayed.toISOString().split('T')[0]);
+
+            cumulativeCount = count || 0;
+
+            const periodCounts: Record<string, number> = {};
+            data.forEach(m => {
+                if (!m.membership_date) return;
+                const d = new Date(m.membership_date);
+                if (d >= firstDateDisplayed) {
+                    const monthName = monthNames[d.getMonth()];
+                    periodCounts[monthName] = (periodCounts[monthName] || 0) + 1;
+                }
+            });
+
+            const result = Object.keys(monthsMap).map(month => {
+                cumulativeCount += (periodCounts[month] || 0);
+                return {
+                    month,
+                    members: cumulativeCount
+                };
+            });
+
+            return result;
+        } catch (err) {
+            console.error('Erro ao buscar dados de crescimento:', err);
+            return [];
         }
     }
 }

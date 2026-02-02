@@ -63,12 +63,22 @@ class FinancialService {
                 .filter(t => t.type === 'expense')
                 .reduce((sum, t) => sum + Number(t.amount), 0);
 
+            // Calcular pagamentos pendentes (estimado)
+            // Pegar total de contribuições esperadas de membros ativos
+            const { data: members } = await supabase
+                .from('members')
+                .select('monthly_contribution')
+                .or('status.eq.active,status.eq.Ativo');
+
+            const expectedMonthlyIncome = (members || []).reduce((sum, m) => sum + Number(m.monthly_contribution || 0), 0);
+            const pendingPayments = Math.max(0, expectedMonthlyIncome - monthlyIncome);
+
             return {
                 data: {
                     balance: totalIncome - totalExpense,
                     monthlyIncome,
                     monthlyExpense,
-                    pendingPayments: 0, // TODO: calcular pagamentos pendentes
+                    pendingPayments,
                 },
                 error: null,
             };

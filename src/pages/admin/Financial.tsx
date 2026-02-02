@@ -149,8 +149,14 @@ const Financial: React.FC = () => {
                             <span className="material-symbols-outlined text-amber-600">warning</span>
                         </div>
                     </div>
-                    <p className="text-3xl font-extrabold text-slate-900 dark:text-white">8.2%</p>
-                    <p className="text-sm text-amber-500 font-medium mt-1">Saldo pendente</p>
+                    <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
+                        {loading ? '...' : summary.monthlyIncome + summary.pendingPayments > 0
+                            ? `${((summary.pendingPayments / (summary.monthlyIncome + summary.pendingPayments)) * 100).toFixed(1)}%`
+                            : '0%'}
+                    </p>
+                    <p className="text-sm text-amber-500 font-medium mt-1">
+                        {loading ? '...' : formatCurrency(summary.pendingPayments)} pendente
+                    </p>
                 </div>
             </div>
 
@@ -216,7 +222,10 @@ const Financial: React.FC = () => {
                                                         <p className="font-semibold text-slate-900 dark:text-white leading-tight">{t.description || t.category}</p>
                                                         {t.member_id && (
                                                             <p className="text-[10px] text-slate-500 uppercase font-black mt-0.5 tracking-tighter">
-                                                                Associado: {members.find(m => m.id === t.member_id)?.first_name || '...'}
+                                                                Associado: {(() => {
+                                                                    const m = members.find(m => m.id === t.member_id);
+                                                                    return m ? `${m.first_name} ${m.last_name || ''}` : '...';
+                                                                })()}
                                                             </p>
                                                         )}
                                                     </div>

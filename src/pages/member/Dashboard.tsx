@@ -13,11 +13,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail }) => {
 
     useEffect(() => {
         const loadData = async () => {
+            if (!userEmail) {
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
 
             // Buscar perfil do membro
-            const email = userEmail || 'joao.silva@email.com'; // fallback para demo
-            const { data: memberProfile } = await memberPortalService.getProfile(email);
+            const { data: memberProfile } = await memberPortalService.getProfile(userEmail);
 
             if (memberProfile) {
                 setProfile(memberProfile);
@@ -37,12 +41,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail }) => {
         loadData();
     }, [userEmail]);
 
-    // Fallback para dados mock se não houver dados reais
-    const displayPayments = payments.length > 0 ? payments : [
-        { id: '1', month: 'Outubro/2023', value: 'R$ 150,00', date: '10/10/2023', status: 'Pago' as const, type: 'mensalidade', amount: 150 },
-        { id: '2', month: 'Setembro/2023', value: 'R$ 150,00', date: '11/09/2023', status: 'Pago' as const, type: 'mensalidade', amount: 150 },
-        { id: '3', month: 'Agosto/2023', value: 'R$ 150,00', date: '10/08/2023', status: 'Pago' as const, type: 'mensalidade', amount: 150 },
-    ];
+    const displayPayments = payments;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -144,10 +143,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail }) => {
                         <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-6 border border-emerald-100 dark:border-emerald-900/20">
                             <div className="flex flex-col gap-1">
                                 <p className="text-primary dark:text-emerald-400 text-4xl font-black tracking-tight">
-                                    {formatCurrency(nextPayment?.amount || profile?.monthly_contribution || 150)}
+                                    {formatCurrency(nextPayment?.amount || 0)}
                                 </p>
                                 <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
-                                    Vencimento: <span className="text-slate-900 dark:text-white font-bold">{nextPayment?.dueDate || '10 de Janeiro, 2026'}</span>
+                                    Vencimento: <span className="text-slate-900 dark:text-white font-bold">{nextPayment?.dueDate || 'A definir'}</span>
                                 </p>
                             </div>
                         </div>
@@ -220,34 +219,41 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail }) => {
                     <button className="text-sm font-bold text-primary hover:text-emerald-700 hover:underline transition-colors">Ver tudo</button>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-slate-800/50">
-                            <tr>
-                                <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest">Mês Referência</th>
-                                <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest">Valor</th>
-                                <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest">Data de Pagamento</th>
-                                <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest text-right">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {displayPayments.map((row) => (
-                                <tr key={row.id} className="hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors">
-                                    <td className="px-8 py-5 font-semibold">{row.month}</td>
-                                    <td className="px-8 py-5 text-slate-600 dark:text-gray-300">{row.value}</td>
-                                    <td className="px-8 py-5 text-slate-600 dark:text-gray-300">{row.date}</td>
-                                    <td className="px-8 py-5 text-right">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${row.status === 'Pago'
-                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
-                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
-                                            }`}>
-                                            <span className={`size-1.5 rounded-full ${row.status === 'Pago' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                                            {row.status}
-                                        </span>
-                                    </td>
+                    {displayPayments.length > 0 ? (
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 dark:bg-slate-800/50">
+                                <tr>
+                                    <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest">Mês Referência</th>
+                                    <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest">Valor</th>
+                                    <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest">Data de Pagamento</th>
+                                    <th className="px-8 py-4 text-[11px] uppercase font-bold text-slate-500 tracking-widest text-right">Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {displayPayments.map((row) => (
+                                    <tr key={row.id} className="hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors">
+                                        <td className="px-8 py-5 font-semibold">{row.month}</td>
+                                        <td className="px-8 py-5 text-slate-600 dark:text-gray-300">{row.value}</td>
+                                        <td className="px-8 py-5 text-slate-600 dark:text-gray-300">{row.date}</td>
+                                        <td className="px-8 py-5 text-right">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${row.status === 'Pago'
+                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
+                                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
+                                                }`}>
+                                                <span className={`size-1.5 rounded-full ${row.status === 'Pago' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                                                {row.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className="px-8 py-12 text-center">
+                            <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">payments</span>
+                            <p className="text-slate-500 font-medium">Nenhum pagamento registrado no histórico.</p>
+                        </div>
+                    )}
                 </div>
             </section>
         </div>

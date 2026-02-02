@@ -121,7 +121,12 @@ const MeetingEditor: React.FC<MeetingEditorProps> = ({ meetingId, onBack, onGene
     };
 
     const handleUpdateStatus = async (status: string) => {
-        await meetingService.update(meetingId, { status });
+        const updateData: any = { status };
+        if (status === 'completed') {
+            const now = new Date();
+            updateData.end_time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        await meetingService.update(meetingId, updateData);
         loadMeetingData();
     };
 

@@ -35,6 +35,7 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ onClose, onSuccess }) => {
                     const attendees = boardMembers.map(m => ({
                         meeting_id: meeting.id,
                         member_id: m.id,
+                        present: true,
                         role: m.board_position?.toLowerCase().includes('presidente') ? 'president' :
                             m.board_position?.toLowerCase().includes('secret') ? 'secretary' :
                                 m.board_position?.toLowerCase().includes('tesour') ? 'treasurer' : 'participant'

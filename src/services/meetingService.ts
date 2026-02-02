@@ -217,7 +217,7 @@ class MeetingService {
                 .from('meeting_attendees')
                 .insert(attendees.map(a => ({
                     ...a,
-                    present: false
+                    present: a.hasOwnProperty('present') ? (a as any).present : false
                 })));
 
             if (error) {

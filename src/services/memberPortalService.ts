@@ -71,7 +71,7 @@ class MemberPortalService {
                     month: date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
                     value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount || 0),
                     date: date.toLocaleDateString('pt-BR'),
-                    status: 'Pago' as const,
+                    status: t.type === 'income' ? 'Pago' : 'Pendente', // Se é receita no histórico do membro, está pago
                     type: t.category || 'Mensalidade',
                     amount: t.amount || 0,
                 };
@@ -92,20 +92,47 @@ class MemberPortalService {
         dueDate: string;
         status: 'pending' | 'paid' | 'overdue';
     }> {
-        const now = new Date();
-        const dueDay = 10;
-        const dueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
+        try {
+            const now = new Date();
+            const dueDay = 10;
+            const dueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
 
-        // Se já passou do dia 10, próximo vencimento é mês que vem
-        if (now.getDate() > dueDay) {
-            dueDate.setMonth(dueDate.getMonth() + 1);
+            // Ajustar mês se já passou do dia 10
+            if (now.getDate() > dueDay) {
+                // dueDate.setMonth(dueDate.getMonth() + 1); // Removi o avanço automático para verificar o mês ATUAL se ainda não foi pago
+            }
+
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA');
+            const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toLocaleDateString('en-CA');
+
+            // Verificar se já houve pagamento de mensalidade este mês
+            const { data: payments } = await supabase
+                .from('transactions')
+                .select('id')
+                .eq('member_id', member.id)
+                .eq('category', 'Mensalidade')
+                .gte('date', firstDayOfMonth)
+                .lte('date', lastDayOfMonth);
+
+            const isPaid = payments && payments.length > 0;
+
+            // Se já pagou este mês, o próximo é o mês que vem
+            if (isPaid) {
+                dueDate.setMonth(dueDate.getMonth() + 1);
+            }
+
+            return {
+                amount: member.monthly_contribution || 150,
+                dueDate: dueDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+                status: isPaid ? 'paid' : (now.getDate() > dueDay ? 'overdue' : 'pending'),
+            };
+        } catch (err) {
+            return {
+                amount: member.monthly_contribution || 150,
+                dueDate: '10 de cada mês',
+                status: 'pending',
+            };
         }
-
-        return {
-            amount: member.monthly_contribution || 150,
-            dueDate: dueDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
-            status: now.getDate() > dueDay ? 'pending' : 'pending',
-        };
     }
 }
 

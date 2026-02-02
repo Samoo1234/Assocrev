@@ -97,7 +97,7 @@ class AIMinutesService {
             return `${i + 1}. ${v.subject}\n   A favor: ${v.votes_for} | Contra: ${v.votes_against} | Abstenções: ${v.votes_abstain} | Resultado: ${result}`;
         }).join('\n\n') || 'Nenhuma votação registrada';
 
-        return `Você é um secretário(a) profissional de uma associação de beneficiários. 
+        return `Você é um secretário(a) profissional da associação ASSOCREV. 
 Gere uma ATA DE REUNIÃO oficial e formal em português brasileiro com base nos dados abaixo.
 
 INSTRUÇÕES:
@@ -158,7 +158,7 @@ Por favor, gere a ATA completa em formato HTML, incluindo:
 
         const html = `
 <div style="font-family: 'Times New Roman', serif; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-    <h1 style="text-align: center; font-size: 18px; margin-bottom: 5px;">ASSOCIAÇÃO DOS BENEFICIÁRIOS</h1>
+    <h1 style="text-align: center; font-size: 18px; margin-bottom: 5px;">ASSOCREV</h1>
     <h2 style="text-align: center; font-size: 16px; font-weight: normal; margin-bottom: 30px;">
         ATA DA ${meetingTypeLabels[meeting.meeting_type]?.toUpperCase() || 'REUNIÃO'}
     </h2>

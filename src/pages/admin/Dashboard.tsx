@@ -19,14 +19,16 @@ const Dashboard: React.FC = () => {
         monthlyIncome: 0,
         balance: 0
     });
+    const [growthData, setGrowthData] = useState<{ month: string; members: number }[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadStats = async () => {
         setLoading(true);
 
-        const [memberCounts, financialSummary] = await Promise.all([
+        const [memberCounts, financialSummary, historicalGrowth] = await Promise.all([
             memberService.countByStatus(),
-            financialService.getSummary()
+            financialService.getSummary(),
+            memberService.getGrowthData()
         ]);
 
         setStats({
@@ -37,6 +39,7 @@ const Dashboard: React.FC = () => {
             balance: financialSummary.data.balance
         });
 
+        setGrowthData(historicalGrowth);
         setLoading(false);
     };
 
@@ -47,16 +50,6 @@ const Dashboard: React.FC = () => {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     };
-
-    // Dados do gráfico (mock para demonstração)
-    const growthData = [
-        { month: 'Jul', members: 980 },
-        { month: 'Ago', members: 1050 },
-        { month: 'Set', members: 1120 },
-        { month: 'Out', members: 1180 },
-        { month: 'Nov', members: 1220 },
-        { month: 'Dez', members: stats.totalMembers || 1284 },
-    ];
 
     return (
         <div className="space-y-6">
@@ -106,7 +99,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <p className="text-slate-400 text-sm font-medium">Receita Mensal</p>
                     <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                        {loading ? '...' : formatCurrency(stats.monthlyIncome || 12450)}
+                        {loading ? '...' : formatCurrency(stats.monthlyIncome)}
                     </p>
                 </div>
 
@@ -118,7 +111,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <p className="text-slate-400 text-sm font-medium">Saldo</p>
                     <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                        {loading ? '...' : formatCurrency(stats.balance || 45280)}
+                        {loading ? '...' : formatCurrency(stats.balance)}
                     </p>
                 </div>
             </div>
