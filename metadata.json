@@ -1,0 +1,8 @@
+
+{
+  "name": "Portal do Associado ASSOCREV",
+  "description": "Uma plataforma completa para gestão de associados, controle financeiro, documentos e eventos, com interfaces para usuários e administradores.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
