@@ -1,5 +1,6 @@
 export type AppView =
     | 'landing'
+    | 'register'
     | 'member-dashboard'
     | 'admin-dashboard'
     | 'members'

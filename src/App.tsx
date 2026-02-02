@@ -6,6 +6,7 @@ import Header from './components/layout/Header';
 // Pages
 import Landing from './pages/public/Landing';
 import Login from './pages/public/Login';
+import Register from './pages/public/Register';
 import MemberDashboard from './pages/member/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import Members from './pages/admin/Members';
@@ -37,7 +38,7 @@ const App: React.FC = () => {
     useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash.replace('#/', '') as ViewState;
-            if (hash && ['landing', 'login', 'login-admin', 'member-dashboard', 'admin-dashboard', 'members', 'users', 'financial', 'documents', 'events', 'meetings'].includes(hash)) {
+            if (hash && ['landing', 'register', 'login', 'login-admin', 'member-dashboard', 'admin-dashboard', 'members', 'users', 'financial', 'documents', 'events', 'meetings'].includes(hash)) {
                 setCurrentView(hash);
             }
         };
@@ -165,7 +166,18 @@ const App: React.FC = () => {
         return (
             <Landing
                 onLogin={() => navigateTo('login')}
+                onRegister={() => navigateTo('register')}
                 onAdminLogin={() => navigateTo('login-admin')}
+            />
+        );
+    }
+
+    // Register page
+    if (currentView === 'register' && !isAuthenticated) {
+        return (
+            <Register
+                onBack={() => navigateTo('landing')}
+                onSuccess={() => navigateTo('login')}
             />
         );
     }

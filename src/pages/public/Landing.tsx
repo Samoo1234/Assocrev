@@ -2,10 +2,11 @@ import React from 'react';
 
 interface LandingProps {
     onLogin: () => void;
+    onRegister: () => void;
     onAdminLogin: () => void;
 }
 
-const Landing: React.FC<LandingProps> = ({ onLogin, onAdminLogin }) => {
+const Landing: React.FC<LandingProps> = ({ onLogin, onRegister, onAdminLogin }) => {
     return (
         <div className="flex flex-col min-h-screen">
             <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
@@ -48,7 +49,7 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onAdminLogin }) => {
                                 Junte-se a milhares de associados e tenha acesso a benefícios em saúde, educação, lazer e assistência social para toda a família.
                             </p>
                             <div className="flex flex-wrap gap-4">
-                                <button onClick={onLogin} className="bg-emerald-400 hover:bg-emerald-300 text-slate-950 px-8 py-4 rounded-xl font-extrabold text-lg transition-all transform hover:scale-[1.02] shadow-xl">
+                                <button onClick={onRegister} className="bg-emerald-400 hover:bg-emerald-300 text-slate-950 px-8 py-4 rounded-xl font-extrabold text-lg transition-all transform hover:scale-[1.02] shadow-xl">
                                     Associe-se Agora
                                 </button>
                                 <button className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-sm px-8 py-4 rounded-xl font-bold text-lg transition-all">
